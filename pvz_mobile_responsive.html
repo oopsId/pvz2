@@ -1,0 +1,1894 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Яндекс.PVZ — Проверка заказов</title>
+<style>
+:root{
+  --bg:#1a1a1a;
+  --panel:#222;
+  --panel-2:#2b2b2b;
+  --panel-3:#343434;
+  --text:#fff;
+  --muted:#a9a9a9;
+  --accent:#ff9a00;
+  --accent-2:#ffc107;
+  --ok:#2ecc71;
+  --bad:#e74c3c;
+  --line:rgba(255,154,0,.72);
+  --shadow:0 12px 28px rgba(0,0,0,.35);
+  --radius:14px;
+  --radius-sm:10px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --scene-h: clamp(240px, 52vh, 560px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Yandex Sans Text', Arial, sans-serif;
+  overflow:hidden;
+}
+button,input{font:inherit}
+button{cursor:pointer}
+.hidden{display:none !important}
+
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:#1f1f1f;border-radius:10px}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--accent),var(--accent-2));border-radius:10px}
+::-webkit-scrollbar-thumb:hover{filter:brightness(1.05)}
+
+#app-shell{
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+}
+
+#loading-screen,
+#title-screen,
+#prompt-overlay{
+  position:fixed;
+  inset:0;
+  z-index:120;
+}
+
+#loading-screen{
+  background:#111;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:18px;
+}
+#loading-text{font-size:1.15rem;color:#d8d8d8}
+#loading-bar{
+  width:min(340px,84vw);
+  height:18px;
+  background:#2c2c2c;
+  border-radius:999px;
+  overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+}
+#loading-progress{
+  width:0%;
+  height:100%;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  transition:width .28s ease;
+}
+
+#title-screen{
+  background:
+    radial-gradient(circle at top, rgba(255,154,0,.12), transparent 32%),
+    linear-gradient(135deg, #1a1a1a, #0c0c0c 66%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+.title-card{
+  width:min(780px, 100%);
+  background:rgba(24,24,24,.92);
+  border:1px solid rgba(255,154,0,.22);
+  border-radius:24px;
+  padding:28px;
+  box-shadow:var(--shadow);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
+  text-align:center;
+}
+#title-logo{width:min(280px,65vw)}
+#title-text{
+  font-size:clamp(1.9rem,4vw,2.8rem);
+  line-height:1.05;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+#rules{
+  max-width:660px;
+  color:#d2d2d2;
+  line-height:1.6;
+}
+.name-row{
+  width:min(420px,100%);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:6px;
+}
+.name-row label{
+  font-size:.95rem;
+  color:#d5d5d5;
+  text-align:left;
+}
+#player-name-input{
+  width:100%;
+  background:#171717;
+  color:#fff;
+  border:1px solid rgba(255,154,0,.25);
+  border-radius:14px;
+  padding:14px 16px;
+  outline:none;
+}
+#player-name-input:focus{
+  border-color:rgba(255,154,0,.7);
+  box-shadow:0 0 0 3px rgba(255,154,0,.15);
+}
+.title-actions{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  justify-content:center;
+  align-items:center;
+}
+#start-button{
+  border:none;
+  color:#fff;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  padding:14px 26px;
+  border-radius:999px;
+  font-weight:700;
+  box-shadow:0 8px 22px rgba(255,154,0,.28);
+}
+#start-button:hover{transform:translateY(-1px)}
+#name-warning{
+  min-height:20px;
+  font-size:.92rem;
+  color:#ffb76a;
+}
+
+#game-screen{
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+#top-stage{
+  position:relative;
+  min-height:var(--scene-h);
+  flex:0 0 var(--scene-h);
+  background:#202020;
+  border-bottom:3px solid var(--accent);
+}
+#scene-container{
+  width:100%;
+  height:100%;
+  position:relative;
+  overflow:hidden;
+}
+#scene-container canvas{
+  display:block;
+  width:100% !important;
+  height:100% !important;
+}
+
+#overlay-layer{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+.stage-panel{
+  position:absolute;
+  background:rgba(26,26,26,.74);
+  border-left:4px solid var(--accent);
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(3px);
+  pointer-events:auto;
+}
+#timer-panel{
+  top:16px;
+  left:16px;
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:1.1rem;
+}
+#customer-panel{
+  top:16px;
+  left:50%;
+  transform:translateX(-50%);
+  width:220px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  text-align:center;
+}
+#customer-image{
+  width:112px;
+  height:112px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#303030;
+}
+#customer-name{font-weight:700;font-size:1.05rem;line-height:1.2}
+#customer-mood{font-size:.95rem;color:#c8c8c8}
+#stats-panel{
+  top:16px;
+  right:16px;
+  padding:14px;
+  width:185px;
+}
+.stat-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:9px;
+}
+.stat-row:last-child{margin-bottom:0}
+.stat-label{color:#b4b4b4}
+.stat-value{font-weight:700}
+#volume-control{
+  position:absolute;
+  top:16px;
+  right:220px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:rgba(26,26,26,.74);
+  border-radius:999px;
+  padding:10px 14px;
+  box-shadow:var(--shadow);
+  pointer-events:auto;
+}
+#volume-slider{width:120px}
+
+#game-ui{
+  flex:1 1 auto;
+  min-height:0;
+  display:grid;
+  grid-template-columns:minmax(360px, 1fr) minmax(360px, 1fr);
+  gap:18px;
+  padding:18px;
+  background:
+    linear-gradient(180deg, rgba(255,154,0,.03), rgba(255,154,0,0) 80px),
+    var(--bg);
+}
+.panel{
+  background:rgba(34,34,34,.94);
+  border:1px solid rgba(255,154,0,.15);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  min-height:0;
+}
+#document-panel{
+  position:relative;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.panel-scroll{
+  min-height:0;
+  overflow:auto;
+  padding-right:6px;
+}
+#doc-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  padding-bottom:12px;
+  margin-bottom:12px;
+  border-bottom:2px solid var(--line);
+}
+#doc-title{
+  font-size:1.5rem;
+  font-weight:800;
+  color:var(--accent);
+}
+#doc-number{
+  color:#b9b9b9;
+  font-size:1rem;
+  white-space:nowrap;
+}
+.customer-card-inline{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:12px;
+}
+.customer-card-inline img{
+  width:92px;
+  height:92px;
+  border-radius:18px;
+  object-fit:cover;
+  flex:0 0 auto;
+}
+.customer-card-meta{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+.customer-card-meta strong{
+  font-size:1.02rem;
+  line-height:1.2;
+}
+.customer-card-meta span{
+  color:#cacaca;
+}
+.doc-section{margin-bottom:12px}
+.doc-label{
+  font-size:.9rem;
+  color:#9b9b9b;
+  margin-bottom:5px;
+}
+.doc-value{
+  background:rgba(255,255,255,.05);
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:1.07rem;
+  line-height:1.4;
+  word-break:break-word;
+}
+.monoish{
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.03em;
+}
+#items-field{white-space:pre-line}
+.deadline-danger{
+  outline:2px solid rgba(231,76,60,.9);
+  background:rgba(231,76,60,.16);
+}
+.checked-ok{
+  box-shadow:0 0 0 2px rgba(46,204,113,.55) inset;
+}
+.checked-bad{
+  box-shadow:0 0 0 2px rgba(231,76,60,.75) inset;
+}
+.highlight-flash{
+  animation:flashField .45s ease;
+}
+@keyframes flashField{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.01)}
+  100%{transform:scale(1)}
+}
+
+.stamp{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%) scale(0.5);
+  opacity:0;
+  transition:opacity .2s ease, transform .2s ease;
+  text-align:center;
+  pointer-events:none;
+  font-weight:800;
+  letter-spacing:.05em;
+}
+#stamp-approved{left:18%;color:var(--ok)}
+#stamp-rejected{right:18%;color:var(--bad)}
+.show-stamp{
+  opacity:1;
+  transform:translateY(-50%) scale(1);
+}
+
+#right-panel{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  min-height:0;
+}
+#assist-panel,#control-panel{overflow:auto}
+#dialog-log{
+  flex:1 1 auto;
+  min-height:180px;
+  max-height:40vh;
+  padding:14px;
+  overflow:auto;
+  background:rgba(18,18,18,.92);
+  border-left:4px solid var(--accent);
+}
+.dialog-line{
+  margin-bottom:8px;
+  line-height:1.45;
+}
+.dialog-line.system{color:var(--accent)}
+.dialog-line.success{color:var(--ok)}
+.dialog-line.alert{color:#ff867c}
+.dialog-line.neutral{color:#efefef}
+
+#control-stack{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  min-height:0;
+}
+#assist-panel{
+  padding:12px 14px;
+}
+.switches{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(220px, 1fr));
+  gap:12px;
+}
+.toggle-card{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  border-radius:14px;
+  background:rgba(255,255,255,.04);
+}
+.toggle-text{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.toggle-text strong{font-size:.98rem}
+.toggle-text span{font-size:.88rem;color:#bdbdbd}
+.switch{
+  position:relative;
+  width:56px;
+  height:32px;
+  flex:0 0 auto;
+}
+.switch input{
+  opacity:0;
+  width:0;
+  height:0;
+}
+.slider{
+  position:absolute;
+  inset:0;
+  background:#5a5a5a;
+  border-radius:999px;
+  transition:.22s ease;
+}
+.slider:before{
+  content:"";
+  position:absolute;
+  width:24px;
+  height:24px;
+  left:4px;
+  top:4px;
+  border-radius:50%;
+  background:#fff;
+  transition:.22s ease;
+}
+.switch input:checked + .slider{
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+}
+.switch input:checked + .slider:before{
+  transform:translateX(24px);
+}
+
+#control-panel{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+  padding:14px;
+}
+.control-btn{
+  min-height:58px;
+  border:none;
+  color:#fff;
+  border-radius:14px;
+  text-align:left;
+  padding:12px 14px;
+  background:linear-gradient(180deg,#404040,#2a2a2a);
+  border-left:4px solid var(--accent);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  transition:transform .18s ease, background .18s ease, opacity .18s ease;
+}
+.control-btn:hover{transform:translateY(-1px);background:linear-gradient(180deg,#505050,#343434)}
+.control-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.control-btn i{font-size:1.1rem}
+
+#prompt-overlay{
+  background:rgba(0,0,0,.78);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+#prompt-box{
+  width:min(520px,100%);
+  background:#202020;
+  border-radius:18px;
+  border-left:4px solid var(--accent);
+  box-shadow:var(--shadow);
+  padding:22px;
+}
+#prompt-title{
+  font-size:1.35rem;
+  font-weight:800;
+  margin-bottom:10px;
+  color:var(--accent);
+}
+#prompt-message{
+  color:#f1f1f1;
+  line-height:1.6;
+  margin-bottom:18px;
+}
+#prompt-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+.modal-btn{
+  border:none;
+  border-radius:12px;
+  padding:12px 16px;
+  font-weight:700;
+}
+#prompt-continue{
+  color:#fff;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+}
+#prompt-secondary{
+  background:#363636;
+  color:#fff;
+  display:none;
+}
+
+#telegram-popup{
+  position:fixed;
+  right:16px;
+  bottom:16px;
+  width:min(360px, calc(100vw - 24px));
+  background:rgba(28,28,28,.96);
+  border:1px solid rgba(255,255,255,.08);
+  border-left:4px solid #2AABEE;
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  z-index:115;
+  overflow:hidden;
+  transform:translateY(20px);
+  opacity:0;
+  pointer-events:none;
+  transition:transform .22s ease, opacity .22s ease;
+}
+#telegram-popup.visible{
+  transform:translateY(0);
+  opacity:1;
+  pointer-events:auto;
+}
+.telegram-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 14px;
+  background:rgba(42,171,238,.12);
+}
+.telegram-head strong{display:flex;align-items:center;gap:8px}
+.telegram-body{
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.telegram-sender{font-weight:700}
+.telegram-text{line-height:1.45;color:#efefef}
+.telegram-time{font-size:.84rem;color:#bdbdbd}
+.telegram-close{
+  border:none;
+  background:transparent;
+  color:#fff;
+  font-size:1.05rem;
+}
+
+.sr-only{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  border:0;
+}
+
+@media (max-width: 980px){
+  body{overflow:auto}
+  #game-screen{min-height:auto}
+  :root{--scene-h:32vh}
+  #top-stage{
+    flex-basis:auto;
+    min-height:auto;
+    display:flex;
+    flex-direction:column;
+    border-bottom:none;
+  }
+  #scene-container{
+    height:32vh;
+    min-height:210px;
+    border-bottom:3px solid var(--accent);
+  }
+  #overlay-layer{
+    position:relative;
+    inset:auto;
+    pointer-events:auto;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    padding:10px;
+    background:
+      linear-gradient(180deg, rgba(255,154,0,.06), transparent 50px),
+      #1a1a1a;
+  }
+  .stage-panel,
+  #volume-control{
+    position:relative;
+    top:auto;
+    left:auto;
+    right:auto;
+    transform:none;
+    width:100%;
+  }
+  #customer-panel{
+    width:100%;
+    flex-direction:row;
+    justify-content:flex-start;
+    text-align:left;
+  }
+  #customer-image{
+    width:72px;
+    height:72px;
+  }
+  #stats-panel{
+    width:100%;
+  }
+  #volume-control{
+    justify-content:space-between;
+    border-radius:12px;
+  }
+  #volume-slider{flex:1}
+  #game-ui{
+    grid-template-columns:1fr;
+    padding:10px;
+    gap:12px;
+  }
+  #document-panel{
+    max-height:42vh;
+  }
+  .customer-card-inline{
+    display:none;
+  }
+  #dialog-log{
+    max-height:18vh;
+    min-height:120px;
+  }
+  #assist-panel{padding:10px}
+  .switches{
+    grid-template-columns:1fr;
+  }
+  #control-stack{
+    position:sticky;
+    bottom:0;
+    z-index:25;
+    padding-bottom:calc(8px + var(--safe-bottom));
+    background:
+      linear-gradient(180deg, rgba(26,26,26,0), rgba(26,26,26,.82) 14px, rgba(26,26,26,.98) 42px);
+  }
+  #control-panel{
+    padding:10px;
+    padding-bottom:calc(10px + var(--safe-bottom));
+  }
+  .control-btn{
+    min-height:56px;
+    border-radius:12px;
+  }
+  #telegram-popup{
+    left:12px;
+    right:12px;
+    width:auto;
+    bottom:calc(12px + var(--safe-bottom));
+  }
+}
+
+@media (max-width: 620px){
+  #title-logo{width:min(220px,70vw)}
+  .title-card{padding:20px}
+  #doc-header{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  #doc-title{font-size:1.22rem}
+  .doc-value{font-size:1rem}
+  #control-panel{
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .control-btn{
+    padding:11px 12px;
+    min-height:54px;
+  }
+}
+
+@media (max-width: 430px){
+  #control-panel{grid-template-columns:1fr 1fr}
+  .control-btn{
+    font-size:.95rem;
+    gap:9px;
+  }
+  #customer-panel{align-items:center}
+  #customer-name{font-size:1rem}
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Yandex+Sans+Text:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<div id="app-shell">
+  <div id="loading-screen">
+    <div id="loading-text">Загрузка пункта выдачи заказов...</div>
+    <div id="loading-bar"><div id="loading-progress"></div></div>
+  </div>
+
+  <div id="title-screen" class="hidden">
+    <div class="title-card">
+      <img id="title-logo" src="https://yastatic.net/s3/eda-front/www/3.7.0/assets/yandex-market-logo.f066e2e.png" alt="Яндекс Маркет">
+      <h1 id="title-text">PVZ: Добро пожаловать, middle software developer!</h1>
+      <div id="rules">
+        Вы — новый стажёр в пункте выдачи заказов Яндекс Маркета.<br>
+        Нужно проверять документы, коды, товары и срок хранения заказа.<br>
+        Работайте быстро, но не штампуйте выдачу вслепую: служба безопасности это замечает.
+      </div>
+      <div class="name-row">
+        <label for="player-name-input">Введите своё имя</label>
+        <input id="player-name-input" type="text" maxlength="24" placeholder="Например, Олег">
+        <div id="name-warning"></div>
+      </div>
+      <div class="title-actions">
+        <button id="start-button">Начать стажировку</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-screen" class="hidden">
+    <div id="top-stage">
+      <div id="scene-container"></div>
+      <div id="overlay-layer">
+        <div id="timer-panel" class="stage-panel">
+          <i class="fas fa-clock"></i>
+          <span id="timer-value">08:00</span>
+        </div>
+
+        <div id="customer-panel" class="stage-panel">
+          <img id="customer-image" alt="Клиент">
+          <div>
+            <div id="customer-name">---</div>
+            <div id="customer-mood">---</div>
+          </div>
+        </div>
+
+        <div id="stats-panel" class="stage-panel">
+          <div class="stat-row"><span class="stat-label">День:</span><span class="stat-value" id="day-value">1/90</span></div>
+          <div class="stat-row"><span class="stat-label">Время:</span><span class="stat-value" id="time-value">08:00</span></div>
+          <div class="stat-row"><span class="stat-label">Клиенты:</span><span class="stat-value" id="customers-value">0/30</span></div>
+          <div class="stat-row"><span class="stat-label">Рейтинг:</span><span class="stat-value" id="rating-value">50%</span></div>
+          <div class="stat-row"><span class="stat-label">Зарплата:</span><span class="stat-value" id="money-value">0 ₽</span></div>
+          <div class="stat-row"><span class="stat-label">Осталось:</span><span class="stat-value" id="days-left-value">89 дней</span></div>
+        </div>
+
+        <div id="volume-control">
+          <i class="fas fa-volume-up"></i>
+          <label class="sr-only" for="volume-slider">Громкость</label>
+          <input type="range" id="volume-slider" min="0" max="100" value="20">
+        </div>
+      </div>
+    </div>
+
+    <div id="game-ui">
+      <div id="document-panel" class="panel">
+        <div id="doc-header">
+          <div id="doc-title">Яндекс Маркет — Накладная</div>
+          <div id="doc-number" class="monoish">№ YM-00000000</div>
+        </div>
+
+        <div class="panel-scroll" id="document-scroll">
+          <div class="customer-card-inline">
+            <img id="doc-customer-image" alt="Клиент">
+            <div class="customer-card-meta">
+              <strong id="doc-customer-name">---</strong>
+              <span id="doc-customer-status">Ожидает выдачи заказа</span>
+            </div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-label">Получатель</div>
+            <div class="doc-value" id="customer-field">---</div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-label">Номер заказа</div>
+            <div class="doc-value monoish" id="order-field">---</div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-label">Дата доставки</div>
+            <div class="doc-value monoish" id="date-field">---</div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-label">Срок хранения до</div>
+            <div class="doc-value monoish" id="deadline-field">---</div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-label">Товары</div>
+            <div class="doc-value" id="items-field">---</div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-label">Стоимость</div>
+            <div class="doc-value monoish" id="price-field">---</div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-label">Код получения</div>
+            <div class="doc-value monoish" id="code-field">---</div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-label">Документ</div>
+            <div class="doc-value monoish" id="document-field">---</div>
+          </div>
+        </div>
+
+        <div id="stamp-approved" class="stamp">
+          <i class="fas fa-check-circle fa-4x"></i>
+          <div>ОДОБРЕНО</div>
+        </div>
+        <div id="stamp-rejected" class="stamp">
+          <i class="fas fa-times-circle fa-4x"></i>
+          <div>ОТКАЗАНО</div>
+        </div>
+      </div>
+
+      <div id="right-panel">
+        <div id="dialog-log" class="panel"></div>
+
+        <div id="control-stack">
+          <div id="assist-panel" class="panel">
+            <div class="switches">
+              <div class="toggle-card">
+                <div class="toggle-text">
+                  <strong>Автопереход к следующему клиенту</strong>
+                  <span>ON — переход сам, OFF — вручную кнопкой</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="auto-next-toggle" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-card">
+                <div class="toggle-text">
+                  <strong>Подсветка срока хранения</strong>
+                  <span>ON — просрочка подсвечивается автоматически</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="deadline-highlight-toggle" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div id="control-panel" class="panel">
+            <button id="approve-btn" class="control-btn"><i class="fas fa-check-circle"></i><span>Выдать заказ</span></button>
+            <button id="reject-btn" class="control-btn"><i class="fas fa-times-circle"></i><span>Отказать</span></button>
+            <button id="check-doc-btn" class="control-btn"><i class="fas fa-id-card"></i><span>Проверить документ</span></button>
+            <button id="check-code-btn" class="control-btn"><i class="fas fa-barcode"></i><span>Проверить код</span></button>
+            <button id="check-items-btn" class="control-btn"><i class="fas fa-box-open"></i><span>Проверить товары</span></button>
+            <button id="next-btn" class="control-btn" disabled><i class="fas fa-forward"></i><span>Следующий клиент</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="prompt-overlay">
+    <div id="prompt-box">
+      <div id="prompt-title">Итоги</div>
+      <div id="prompt-message"></div>
+      <div id="prompt-actions">
+        <button id="prompt-secondary" class="modal-btn">Закрыть</button>
+        <button id="prompt-continue" class="modal-btn">Продолжить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="telegram-popup">
+    <div class="telegram-head">
+      <strong><i class="fab fa-telegram-plane"></i> Telegram</strong>
+      <button id="telegram-close" class="telegram-close" aria-label="Закрыть"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="telegram-body">
+      <div class="telegram-sender" id="telegram-sender">Контакт</div>
+      <div class="telegram-text" id="telegram-text">Текст сообщения</div>
+      <div class="telegram-time" id="telegram-time">сейчас</div>
+    </div>
+  </div>
+</div>
+
+<audio id="bgm" loop preload="none">
+  <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+</audio>
+<audio id="approve-sound" preload="none">
+  <source src="https://www.soundjay.com/buttons/sounds/button-09.mp3" type="audio/mpeg">
+</audio>
+<audio id="reject-sound" preload="none">
+  <source src="https://www.soundjay.com/buttons/sounds/button-10.mp3" type="audio/mpeg">
+</audio>
+<audio id="error-sound" preload="none">
+  <source src="https://www.soundjay.com/buttons/sounds/button-21.mp3" type="audio/mpeg">
+</audio>
+<audio id="check-sound" preload="none">
+  <source src="https://www.soundjay.com/buttons/sounds/button-04.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const gameState = {
+    day: 1,
+    maxDays: 90,
+    time: 480,
+    dayEndTime: 1080,
+    score: 50,
+    money: 0,
+    dayMoney: 0,
+    customers: 0,
+    totalCustomers: 30,
+    currentCustomer: null,
+    gameStarted: false,
+    gameOver: false,
+    isChecking: false,
+    musicVolume: 0.2,
+    customerQueue: [],
+    lastDialog: "",
+    playerName: "",
+    totalMistakes: 0,
+    totalCustomersServed: 0,
+    totalCorrectDecisions: 0,
+    autoNext: true,
+    deadlineAssist: true,
+    suspicion: 0,
+    blindApproveStreak: 0,
+    decisionStartedAt: 0,
+    checked: { document: false, code: false, items: false },
+    pendingNext: false,
+    currentDayServed: 0
+  };
+
+  const bgm = $("bgm");
+  const approveSound = $("approve-sound");
+  const rejectSound = $("reject-sound");
+  const errorSound = $("error-sound");
+  const checkSound = $("check-sound");
+  let mainClock = null;
+
+  function playSound(audio) {
+    if (!audio) return;
+    audio.volume = gameState.musicVolume;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
+
+  $("volume-slider").addEventListener("input", (e) => {
+    gameState.musicVolume = Number(e.target.value) / 100;
+    bgm.volume = gameState.musicVolume;
+  });
+
+  $("auto-next-toggle").addEventListener("change", (e) => {
+    gameState.autoNext = e.target.checked;
+    syncNextButtonState();
+  });
+
+  $("deadline-highlight-toggle").addEventListener("change", (e) => {
+    gameState.deadlineAssist = e.target.checked;
+    applyDeadlineHighlight();
+  });
+
+  function formatTime(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+  }
+
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function clamp(num, min, max) {
+    return Math.max(min, Math.min(max, num));
+  }
+
+  function pad(num, len = 2) {
+    return String(num).padStart(len, "0");
+  }
+
+  function dateToRu(date) {
+    return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
+  }
+
+  function startOfToday() {
+    const d = new Date();
+    d.setHours(0,0,0,0);
+    return d;
+  }
+
+  function parseRuDate(value) {
+    const [dd, mm, yyyy] = value.split(".");
+    return new Date(Number(yyyy), Number(mm) - 1, Number(dd), 0, 0, 0, 0);
+  }
+
+  function formatPrice(value) {
+    return new Intl.NumberFormat("ru-RU").format(value) + " ₽";
+  }
+
+  function initialsFromName(fullName) {
+    return fullName.split(" ").slice(0, 2).map(part => part.charAt(0)).join("").toUpperCase();
+  }
+
+  function makeAvatarDataUri(fullName) {
+    const initials = initialsFromName(fullName);
+    const hue = Math.abs(hashCode(fullName)) % 360;
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128">
+        <defs>
+          <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+            <stop stop-color="hsl(${hue},70%,72%)"/>
+            <stop offset="1" stop-color="hsl(${(hue + 35) % 360},68%,58%)"/>
+          </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" rx="24" fill="url(#g)"/>
+        <circle cx="64" cy="50" r="26" fill="rgba(255,255,255,.92)"/>
+        <rect x="26" y="82" width="76" height="34" rx="16" fill="rgba(255,255,255,.92)"/>
+        <text x="50%" y="52%" font-family="Arial" font-size="26" font-weight="700" text-anchor="middle" fill="#222">${initials}</text>
+      </svg>`;
+    return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
+  }
+
+  function hashCode(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = ((h << 5) - h) + str.charCodeAt(i);
+      h |= 0;
+    }
+    return h;
+  }
+
+  function addDialogLine(text, type = "neutral") {
+    if (gameState.lastDialog === text) return;
+    gameState.lastDialog = text;
+    const line = document.createElement("div");
+    line.className = `dialog-line ${type}`;
+    line.textContent = text;
+    $("dialog-log").appendChild(line);
+    $("dialog-log").scrollTop = $("dialog-log").scrollHeight;
+  }
+
+  function clearDialogIfTooLong() {
+    const log = $("dialog-log");
+    while (log.children.length > 120) {
+      log.removeChild(log.firstChild);
+    }
+  }
+
+  function updateUI() {
+    $("day-value").textContent = `${gameState.day}/${gameState.maxDays}`;
+    $("time-value").textContent = formatTime(gameState.time);
+    $("timer-value").textContent = formatTime(gameState.time);
+    $("customers-value").textContent = `${gameState.customers}/${gameState.totalCustomers}`;
+    $("rating-value").textContent = `${gameState.score}%`;
+    $("money-value").textContent = `${gameState.money} ₽`;
+    $("days-left-value").textContent = `${Math.max(0, gameState.maxDays - gameState.day)} дней`;
+  }
+
+  function setCustomerMood(text, color = "#cacaca") {
+    $("customer-mood").textContent = text;
+    $("customer-mood").style.color = color;
+    $("doc-customer-status").textContent = text;
+  }
+
+  function markField(elementId, state) {
+    const el = $(elementId);
+    if (!el) return;
+    el.classList.remove("checked-ok", "checked-bad", "highlight-flash");
+    void el.offsetWidth;
+    el.classList.add("highlight-flash");
+    if (state === "ok") el.classList.add("checked-ok");
+    if (state === "bad") el.classList.add("checked-bad");
+  }
+
+  function showStamp(approved) {
+    const stamp = approved ? $("stamp-approved") : $("stamp-rejected");
+    stamp.classList.add("show-stamp");
+    playSound(approved ? approveSound : rejectSound);
+    setTimeout(() => stamp.classList.remove("show-stamp"), 1200);
+  }
+
+  function syncNextButtonState() {
+    const canManualNext = gameState.pendingNext && !gameState.autoNext && !gameState.gameOver;
+    $("next-btn").disabled = !canManualNext;
+  }
+
+  function getSalaryMultiplier() {
+    return clamp(1 - (gameState.suspicion * 0.0075), 0.45, 1);
+  }
+
+  function getPenaltyMultiplier() {
+    return 1 + (gameState.suspicion * 0.012);
+  }
+
+  function adjustSuspicion(amount, reason = "") {
+    gameState.suspicion = clamp(gameState.suspicion + amount, 0, 100);
+    if (reason && amount > 0) addDialogLine(reason, "alert");
+    if (reason && amount < 0) addDialogLine(reason, "success");
+  }
+
+  function createQueueForDay() {
+    gameState.customerQueue = [];
+    const suspicionFactor = gameState.suspicion / 100;
+    const controlChance = 0.08 + suspicionFactor * 0.34;
+
+    for (let i = 0; i < gameState.totalCustomers; i++) {
+      const isControl = Math.random() < controlChance;
+      const correctChance = clamp((isControl ? 0.52 : 0.72) - suspicionFactor * 0.18, 0.36, 0.82);
+      const isCorrect = Math.random() < correctChance;
+      gameState.customerQueue.push(generateCustomer(isCorrect, isControl));
+    }
+  }
+
+  function generateCustomer(isCorrect, isControl) {
+    const male = Math.random() > 0.5;
+    const firstNamesMale = ["Александр","Дмитрий","Максим","Сергей","Андрей","Кирилл","Илья"];
+    const firstNamesFemale = ["Анна","Мария","Елена","Дарья","Алина","Наталья","Ольга"];
+    const lastNamesMale = ["Иванов","Петров","Смирнов","Сидоров","Кузнецов","Морозов","Орлов"];
+    const lastNamesFemale = ["Иванова","Петрова","Смирнова","Сидорова","Кузнецова","Морозова","Орлова"];
+    const maleMiddleNames = ["Иванович","Петрович","Александрович","Сергеевич","Дмитриевич","Андреевич"];
+    const femaleMiddleNames = ["Ивановна","Петровна","Александровна","Сергеевна","Дмитриевна","Андреевна"];
+
+    const firstName = male ? firstNamesMale[randomInt(0, firstNamesMale.length - 1)] : firstNamesFemale[randomInt(0, firstNamesFemale.length - 1)];
+    const lastName = male ? lastNamesMale[randomInt(0, lastNamesMale.length - 1)] : lastNamesFemale[randomInt(0, lastNamesFemale.length - 1)];
+    const middleName = male ? maleMiddleNames[randomInt(0, maleMiddleNames.length - 1)] : femaleMiddleNames[randomInt(0, femaleMiddleNames.length - 1)];
+    const fullName = `${lastName} ${firstName} ${middleName}`;
+
+    const products = [
+      "Смартфон Xiaomi",
+      "Наушники Sony",
+      "Ноутбук ASUS",
+      "Кофемашина Philips",
+      "Планшет Samsung",
+      "Пылесос Dreame",
+      "Монитор LG",
+      "Колонка JBL"
+    ];
+
+    const itemCount = randomInt(1, 3);
+    const items = [];
+    for (let i = 0; i < itemCount; i++) {
+      const name = products[randomInt(0, products.length - 1)];
+      const qty = randomInt(1, 3);
+      items.push(`${name}, ${qty} шт.`);
+    }
+
+    const today = startOfToday();
+    const delivered = new Date(today);
+    delivered.setDate(delivered.getDate() - randomInt(0, 6));
+
+    const storageDeadline = new Date(today);
+    storageDeadline.setDate(storageDeadline.getDate() + randomInt(0, 4));
+
+    const orderNumber = `YM-${today.getFullYear()}${randomInt(100000, 999999)}`;
+    const price = formatPrice(randomInt(1200, 18000));
+    const code = `${randomInt(1000,9999)} ${randomInt(1000,9999)}`;
+    const passportSeries = `${randomInt(10, 49)}${randomInt(10, 99)}`;
+    const passportNumber = `${randomInt(100000,999999)}`;
+    let issue = "";
+    let errorText = "";
+    let mutatedItems = [...items];
+    let deadlineValue = dateToRu(storageDeadline);
+    let documentValue = `Паспорт РФ: ${passportSeries} ${passportNumber}`;
+    let codeValue = code;
+
+    if (!isCorrect) {
+      const issuePool = ["wrongDocument", "wrongCode", "wrongItems", "expiredStorage", "fakedDocument"];
+      issue = issuePool[randomInt(0, issuePool.length - 1)];
+
+      if (issue === "wrongDocument") {
+        errorText = "Неверный документ";
+        documentValue = "Водительское удостоверение";
+      } else if (issue === "wrongCode") {
+        errorText = "Неверный код";
+        codeValue = `${randomInt(1000,9999)} ${randomInt(1000,9999)}`;
+      } else if (issue === "wrongItems") {
+        errorText = "Список товаров не совпадает";
+        mutatedItems = items.length > 1 ? items.slice(0, items.length - 1) : [`${products[randomInt(0, products.length - 1)]}, 1 шт.`];
+      } else if (issue === "expiredStorage") {
+        errorText = "Срок хранения истёк";
+        const expired = new Date(today);
+        expired.setDate(expired.getDate() - randomInt(1, 3));
+        deadlineValue = dateToRu(expired);
+      } else if (issue === "fakedDocument") {
+        errorText = "Поддельный документ";
+        documentValue = `Паспорт РФ: 99${randomInt(10,99)} ${passportNumber}`;
+      }
+    }
+
+    return {
+      name: fullName,
+      order: orderNumber,
+      date: dateToRu(delivered),
+      deadline: deadlineValue,
+      items: mutatedItems,
+      price: price,
+      code: codeValue,
+      document: documentValue,
+      correct: isCorrect,
+      issue: issue,
+      errorText: errorText,
+      isControl,
+      avatar: makeAvatarDataUri(fullName)
+    };
+  }
+
+  function isDeadlineExpired(deadlineStr) {
+    return parseRuDate(deadlineStr) < startOfToday();
+  }
+
+  function applyDeadlineHighlight() {
+    const field = $("deadline-field");
+    field.classList.remove("deadline-danger");
+    if (!gameState.currentCustomer) return;
+    if (gameState.deadlineAssist && isDeadlineExpired(gameState.currentCustomer.deadline)) {
+      field.classList.add("deadline-danger");
+    }
+  }
+
+  function resetCheckFlags() {
+    gameState.checked = { document: false, code: false, items: false };
+    ["document-field", "code-field", "items-field"].forEach((id) => {
+      $(id).classList.remove("checked-ok", "checked-bad", "highlight-flash");
+    });
+  }
+
+  function fillCustomerCard() {
+    const c = gameState.currentCustomer;
+    if (!c) return;
+
+    $("doc-number").textContent = `№ ${c.order.replace("YM-", "YM-")}`;
+    $("customer-field").textContent = c.name;
+    $("order-field").textContent = c.order;
+    $("date-field").textContent = c.date;
+    $("deadline-field").textContent = c.deadline;
+    $("items-field").textContent = c.items.join("\n");
+    $("price-field").textContent = c.price;
+    $("code-field").textContent = c.code;
+    $("document-field").textContent = c.document;
+
+    $("customer-name").textContent = c.name;
+    $("doc-customer-name").textContent = c.name;
+    $("customer-image").src = c.avatar;
+    $("doc-customer-image").src = c.avatar;
+    setCustomerMood("Ожидает выдачи заказа", "#d2d2d2");
+    applyDeadlineHighlight();
+  }
+
+  function startNewDay() {
+    if (gameState.gameOver) return;
+
+    gameState.gameStarted = true;
+    gameState.customers = 0;
+    gameState.currentDayServed = 0;
+    gameState.dayMoney = 0;
+    gameState.time = 480;
+    gameState.pendingNext = false;
+    syncNextButtonState();
+    createQueueForDay();
+    updateUI();
+    addDialogLine(`${gameState.playerName}, день ${gameState.day} стажировки начался!`, "system");
+    addDialogLine("Новая смена открыта. Проверяйте код, документ, товары и срок хранения.", "system");
+    startNextCustomer(true);
+  }
+
+  function startNextCustomer(force = false) {
+    if (gameState.gameOver || !gameState.gameStarted) return;
+    if (!force && gameState.isChecking) return;
+    if (gameState.customers >= gameState.totalCustomers) {
+      finishDay();
+      return;
+    }
+
+    gameState.pendingNext = false;
+    syncNextButtonState();
+    gameState.isChecking = true;
+    gameState.currentCustomer = gameState.customerQueue[gameState.customers];
+    gameState.decisionStartedAt = Date.now();
+    resetCheckFlags();
+    fillCustomerCard();
+
+    const prefix = gameState.currentCustomer.isControl ? "[контрольный клиент] " : "";
+    addDialogLine(`${prefix}${gameState.currentCustomer.name}: "Здравствуйте, я за заказом."`);
+    clearDialogIfTooLong();
+  }
+
+  function getCheckCount() {
+    return Number(gameState.checked.document) + Number(gameState.checked.code) + Number(gameState.checked.items);
+  }
+
+  function checkDocument() {
+    if (!gameState.isChecking || !gameState.currentCustomer) return;
+    gameState.checked.document = true;
+    const bad = gameState.currentCustomer.issue === "wrongDocument" || gameState.currentCustomer.issue === "fakedDocument";
+    markField("document-field", bad ? "bad" : "ok");
+    playSound(checkSound);
+
+    if (bad) {
+      addDialogLine(`✖ ${gameState.currentCustomer.errorText}`, "alert");
+      setCustomerMood("Раздражён", "#ff867c");
+    } else {
+      addDialogLine("✔ Документ проверен.", "success");
+      setCustomerMood("Показывает документ", "#c8d6e5");
+    }
+  }
+
+  function checkCode() {
+    if (!gameState.isChecking || !gameState.currentCustomer) return;
+    gameState.checked.code = true;
+    const bad = gameState.currentCustomer.issue === "wrongCode";
+    markField("code-field", bad ? "bad" : "ok");
+    playSound(checkSound);
+
+    if (bad) {
+      addDialogLine(`✖ ${gameState.currentCustomer.errorText}`, "alert");
+      setCustomerMood("Нервничает из-за кода", "#ff867c");
+    } else {
+      addDialogLine("✔ Код подтверждён.", "success");
+      setCustomerMood("Сообщает код", "#c8d6e5");
+    }
+  }
+
+  function checkItems() {
+    if (!gameState.isChecking || !gameState.currentCustomer) return;
+    gameState.checked.items = true;
+    const bad = gameState.currentCustomer.issue === "wrongItems";
+    markField("items-field", bad ? "bad" : "ok");
+    playSound(checkSound);
+
+    if (bad) {
+      addDialogLine(`✖ ${gameState.currentCustomer.errorText}`, "alert");
+      setCustomerMood("Напрягся во время сверки", "#ff867c");
+    } else {
+      addDialogLine("✔ Товары сверены.", "success");
+      setCustomerMood("Ждёт решение", "#c8d6e5");
+    }
+  }
+
+  function evaluateSuspicion(action, checkCount, durationSeconds) {
+    const current = gameState.currentCustomer;
+    const blindApprove = action === "approve" && checkCount === 0;
+    const tooFast = durationSeconds < 3.2;
+
+    if (blindApprove) {
+      gameState.blindApproveStreak += 1;
+      adjustSuspicion(10, "Служебное подозрение: выдача без единой проверки.");
+    } else if (action === "approve" && checkCount <= 1) {
+      gameState.blindApproveStreak = 0;
+      adjustSuspicion(4, "Служебное подозрение: решение принято почти вслепую.");
+    } else {
+      gameState.blindApproveStreak = 0;
+    }
+
+    if (tooFast) {
+      adjustSuspicion(6, "Служебное подозрение: решение принято слишком быстро.");
+    }
+
+    if (gameState.blindApproveStreak >= 3) {
+      adjustSuspicion(4 + gameState.blindApproveStreak, "Служебное подозрение: серия слепых выдач бросилась в глаза.");
+    }
+
+    if (checkCount >= 2 && durationSeconds >= 4) {
+      adjustSuspicion(-4, "Проверка выглядела аккуратно — подозрение слегка снизилось.");
+    }
+
+    if (action === "reject" && !current.correct && checkCount >= 1) {
+      adjustSuspicion(-2, "Корректный отказ снизил подозрение.");
+    }
+  }
+
+  function endCustomerFlow() {
+    gameState.customers += 1;
+    gameState.currentDayServed += 1;
+    gameState.totalCustomersServed += 1;
+    gameState.isChecking = false;
+    updateUI();
+
+    if (gameState.customers >= gameState.totalCustomers) {
+      setTimeout(finishDay, 800);
+      return;
+    }
+
+    if (gameState.autoNext) {
+      setTimeout(() => startNextCustomer(true), 900);
+    } else {
+      gameState.pendingNext = true;
+      syncNextButtonState();
+      addDialogLine("Ожидание: нажмите «Следующий клиент».", "system");
+    }
+  }
+
+  function applyDecision(action) {
+    if (!gameState.isChecking || !gameState.currentCustomer || gameState.gameOver) return;
+
+    const current = gameState.currentCustomer;
+    const checkCount = getCheckCount();
+    const durationSeconds = (Date.now() - gameState.decisionStartedAt) / 1000;
+    evaluateSuspicion(action, checkCount, durationSeconds);
+
+    const penaltyMultiplier = getPenaltyMultiplier();
+    const salaryMultiplier = getSalaryMultiplier();
+    let scoreDelta = 0;
+    let moneyDelta = 0;
+    let decisionCorrect = false;
+    let details = "";
+
+    if (action === "approve") {
+      const blindApprove = checkCount === 0;
+      if (current.correct) {
+        decisionCorrect = true;
+        scoreDelta = blindApprove ? 1 : checkCount === 1 ? 3 : 5;
+        moneyDelta = Math.round((blindApprove ? 20 : checkCount === 1 ? 60 : 100) * salaryMultiplier);
+        details = blindApprove
+          ? "Заказ выдан без проверок: формально верно, но служба безопасности недовольна."
+          : "Клиент обслужен корректно.";
+        setCustomerMood("Доволен", "#2ecc71");
+      } else {
+        decisionCorrect = false;
+        const basePenalty = 10 + (blindApprove ? 10 : 0) + (durationSeconds < 3.2 ? 4 : 0) + (current.isControl ? 8 : 0);
+        scoreDelta = -Math.round(basePenalty * penaltyMultiplier);
+        moneyDelta = 0;
+        details = `Ошибка: ${current.errorText}.`;
+        setCustomerMood("Рассержен", "#ff867c");
+      }
+      showStamp(true);
+    } else {
+      if (!current.correct) {
+        decisionCorrect = true;
+        scoreDelta = checkCount === 0 ? 2 : 5;
+        moneyDelta = Math.round((checkCount === 0 ? 15 : 50) * salaryMultiplier);
+        details = `Отказано верно: ${current.errorText}.`;
+        setCustomerMood("Уходит разочарованный", "#f1c40f");
+      } else {
+        decisionCorrect = false;
+        const basePenalty = 15 + (durationSeconds < 3.2 ? 4 : 0) + (current.isControl ? 6 : 0);
+        scoreDelta = -Math.round(basePenalty * penaltyMultiplier);
+        moneyDelta = 0;
+        details = "Ошибка: клиент был прав.";
+        setCustomerMood("Рассержен", "#ff867c");
+      }
+      showStamp(false);
+    }
+
+    if (decisionCorrect) {
+      gameState.totalCorrectDecisions += 1;
+      gameState.score = clamp(gameState.score + scoreDelta, 0, 100);
+      gameState.money += moneyDelta;
+      gameState.dayMoney += moneyDelta;
+      addDialogLine(`✔ ${details} Рейтинг ${scoreDelta >= 0 ? "+" : ""}${scoreDelta}%`, "success");
+      if (moneyDelta > 0) addDialogLine(`Зарплатный коэффициент смены: x${salaryMultiplier.toFixed(2)}. Начислено ${moneyDelta} ₽.`, "system");
+    } else {
+      gameState.totalMistakes += 1;
+      gameState.score = clamp(gameState.score + scoreDelta, 0, 100);
+      addDialogLine(`✖ ${details} Рейтинг ${scoreDelta}%`, "alert");
+      if (current.isControl) addDialogLine("Это был контрольный клиент. Штраф усилен.", "alert");
+    }
+
+    endCustomerFlow();
+  }
+
+  function finishDay() {
+    if (gameState.gameOver) return;
+
+    gameState.gameStarted = false;
+    gameState.isChecking = false;
+    gameState.pendingNext = false;
+    syncNextButtonState();
+
+    const daysLeftAfterThis = gameState.maxDays - gameState.day;
+    if (gameState.day >= gameState.maxDays) {
+      finishGame();
+      return;
+    }
+
+    showModal({
+      title: `Итоги дня ${gameState.day}`,
+      message:
+        `Вы обслужили ${gameState.currentDayServed} клиентов из ${gameState.totalCustomers}.<br>` +
+        `Заработано за день: <strong>${gameState.dayMoney} ₽</strong>.<br>` +
+        `Текущий рейтинг: <strong>${gameState.score}%</strong>.<br>` +
+        `Осталось дней стажировки: <strong>${daysLeftAfterThis}</strong>.`,
+      continueText: "Следующий день",
+      onContinue: () => {
+        gameState.day += 1;
+        startNewDay();
+      }
+    });
+  }
+
+  function finishGame() {
+    gameState.gameOver = true;
+    gameState.gameStarted = false;
+    if (mainClock) clearInterval(mainClock);
+
+    const accepted = gameState.score >= 70 && gameState.suspicion < 55 && gameState.totalMistakes < 320;
+    const verdictTitle = accepted ? "Поздравляем — вы приняты" : "Вы нам не подходите";
+    const reasons = [];
+
+    if (gameState.score < 70) reasons.push("рейтинг оказался ниже порога");
+    if (gameState.suspicion >= 55) reasons.push("служба безопасности сочла стиль выдачи подозрительным");
+    if (gameState.totalMistakes >= 320) reasons.push("слишком много ошибок на дистанции");
+
+    const reasonText = accepted
+      ? "Вы дожили до конца 90-дневной стажировки и удержали нормальный баланс между скоростью и внимательностью."
+      : `Причина: ${reasons.join(", ")}.`;
+
+    showModal({
+      title: verdictTitle,
+      message:
+        `Стажировка завершена.<br><br>` +
+        `Итоговый рейтинг: <strong>${gameState.score}%</strong><br>` +
+        `Всего заработано: <strong>${gameState.money} ₽</strong><br>` +
+        `Обслужено клиентов: <strong>${gameState.totalCustomersServed}</strong><br>` +
+        `Ошибок: <strong>${gameState.totalMistakes}</strong><br><br>` +
+        `${reasonText}`,
+      continueText: "Ок",
+      secondaryText: "На титульный экран",
+      onContinue: () => {},
+      onSecondary: () => location.reload()
+    });
+  }
+
+  function showModal({ title, message, continueText = "Продолжить", secondaryText = "", onContinue = null, onSecondary = null }) {
+    $("prompt-title").textContent = title;
+    $("prompt-message").innerHTML = message;
+    $("prompt-continue").textContent = continueText;
+
+    const secondary = $("prompt-secondary");
+    if (secondaryText) {
+      secondary.style.display = "inline-flex";
+      secondary.textContent = secondaryText;
+      secondary.onclick = () => {
+        $("prompt-overlay").style.display = "none";
+        if (typeof onSecondary === "function") onSecondary();
+      };
+    } else {
+      secondary.style.display = "none";
+      secondary.onclick = null;
+    }
+
+    $("prompt-continue").onclick = () => {
+      $("prompt-overlay").style.display = "none";
+      if (typeof onContinue === "function") onContinue();
+    };
+
+    $("prompt-overlay").style.display = "flex";
+  }
+
+  function gameLoop() {
+    if (!gameState.gameStarted || gameState.gameOver) return;
+    gameState.time += 1;
+    updateUI();
+
+    if (gameState.time >= gameState.dayEndTime) {
+      finishDay();
+    }
+  }
+
+  function resetGameUiBeforeStart() {
+    $("dialog-log").innerHTML = "";
+    $("customer-field").textContent = "---";
+    $("order-field").textContent = "---";
+    $("date-field").textContent = "---";
+    $("deadline-field").textContent = "---";
+    $("items-field").textContent = "---";
+    $("price-field").textContent = "---";
+    $("code-field").textContent = "---";
+    $("document-field").textContent = "---";
+    $("customer-name").textContent = "---";
+    $("doc-customer-name").textContent = "---";
+    setCustomerMood("---");
+    syncNextButtonState();
+    updateUI();
+  }
+
+  function startGame() {
+    const value = $("player-name-input").value.trim();
+    if (!value) {
+      $("name-warning").textContent = "Нужно ввести имя перед стартом.";
+      return;
+    }
+    $("name-warning").textContent = "";
+    gameState.playerName = value;
+    gameState.gameStarted = true;
+
+    $("title-screen").classList.add("hidden");
+    $("game-screen").classList.remove("hidden");
+
+    resetGameUiBeforeStart();
+    init3DScene();
+    bgm.volume = gameState.musicVolume;
+    bgm.play().catch(() => {});
+
+    if (mainClock) clearInterval(mainClock);
+    mainClock = setInterval(gameLoop, 1000);
+
+    addDialogLine(`${gameState.playerName}, добро пожаловать на стажировку.`, "system");
+    startNewDay();
+
+    // Шаблон на будущее: телеграм-история/романтическая линия/служебные вбросы.
+    window.showTelegramStoryMessage = showTelegramPopup;
+  }
+
+  function showTelegramPopup({ sender = "Контакт", text = "Сообщение", time = "сейчас", autocloseMs = 0 } = {}) {
+    $("telegram-sender").textContent = sender;
+    $("telegram-text").textContent = text;
+    $("telegram-time").textContent = time;
+    $("telegram-popup").classList.add("visible");
+
+    if (autocloseMs > 0) {
+      setTimeout(hideTelegramPopup, autocloseMs);
+    }
+  }
+
+  function hideTelegramPopup() {
+    $("telegram-popup").classList.remove("visible");
+  }
+
+  $("telegram-close").addEventListener("click", hideTelegramPopup);
+
+  $("start-button").addEventListener("click", startGame);
+  $("approve-btn").addEventListener("click", () => applyDecision("approve"));
+  $("reject-btn").addEventListener("click", () => applyDecision("reject"));
+  $("check-doc-btn").addEventListener("click", checkDocument);
+  $("check-code-btn").addEventListener("click", checkCode);
+  $("check-items-btn").addEventListener("click", checkItems);
+  $("next-btn").addEventListener("click", () => {
+    if (gameState.pendingNext && !gameState.autoNext) startNextCustomer(true);
+  });
+  $("player-name-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") startGame();
+  });
+
+  function initLoadingScreen() {
+    const progressBar = $("loading-progress");
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 20;
+      progressBar.style.width = `${progress}%`;
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          $("loading-screen").classList.add("hidden");
+          $("title-screen").classList.remove("hidden");
+        }, 250);
+      }
+    }, 220);
+  }
+
+  let scene, camera, renderer, controls, animationFrame, sceneRoot;
+  function init3DScene() {
+    const container = $("scene-container");
+    if (renderer) {
+      cancelAnimationFrame(animationFrame);
+      controls?.dispose?.();
+      renderer.dispose();
+      container.innerHTML = "";
+    }
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xe7ecef);
+
+    camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1000);
+    camera.position.set(0, 2.2, 4.1);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    container.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    dirLight.position.set(5, 8, 5);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    scene.add(dirLight);
+
+    sceneRoot = new THREE.Group();
+    scene.add(sceneRoot);
+
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(18, 14),
+      new THREE.MeshStandardMaterial({ color: 0xdbdbdb, roughness: 0.9 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    sceneRoot.add(floor);
+
+    const backWall = new THREE.Mesh(
+      new THREE.BoxGeometry(14, 5, 0.25),
+      new THREE.MeshStandardMaterial({ color: 0xf4f5f5, roughness: 0.55 })
+    );
+    backWall.position.set(0, 2.5, -5);
+    sceneRoot.add(backWall);
+
+    const sideWallL = new THREE.Mesh(
+      new THREE.BoxGeometry(0.25, 5, 10),
+      new THREE.MeshStandardMaterial({ color: 0xe5e8ea, roughness: 0.6 })
+    );
+    sideWallL.position.set(-6.8, 2.5, -0.4);
+    sceneRoot.add(sideWallL);
+
+    const sideWallR = sideWallL.clone();
+    sideWallR.position.x = 6.8;
+    sceneRoot.add(sideWallR);
+
+    const accentLineMat = new THREE.MeshBasicMaterial({ color: 0xffb200 });
+    for (let i = 0; i < 3; i++) {
+      const line = new THREE.Mesh(new THREE.PlaneGeometry(11, 0.12), accentLineMat);
+      line.position.set(0, 1.3 + i * 1.15, -4.87);
+      sceneRoot.add(line);
+    }
+
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xbfe3ff,
+      transparent: true,
+      opacity: 0.26,
+      roughness: 0.05,
+      metalness: 0.18,
+      transmission: 0.65
+    });
+    const leftDoor = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 3.2), glassMat);
+    leftDoor.position.set(-1.15, 1.65, -4.85);
+    sceneRoot.add(leftDoor);
+
+    const rightDoor = leftDoor.clone();
+    rightDoor.position.x = 1.15;
+    sceneRoot.add(rightDoor);
+
+    const counterBase = new THREE.Mesh(
+      new THREE.BoxGeometry(4.5, 1.15, 1.8),
+      new THREE.MeshStandardMaterial({ color: 0xe08b00, roughness: 0.7 })
+    );
+    counterBase.position.set(0, 0.6, -1.4);
+    counterBase.castShadow = true;
+    sceneRoot.add(counterBase);
+
+    const counterTop = new THREE.Mesh(
+      new THREE.BoxGeometry(4.9, 0.09, 2.05),
+      new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 0.15, metalness: 0.5 })
+    );
+    counterTop.position.set(0, 1.22, -1.4);
+    sceneRoot.add(counterTop);
+
+    const monitor = new THREE.Mesh(
+      new THREE.BoxGeometry(0.7, 0.45, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.35 })
+    );
+    monitor.position.set(0, 1.55, -1.18);
+    sceneRoot.add(monitor);
+
+    const sign = new THREE.Mesh(
+      new THREE.BoxGeometry(3.3, 0.9, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0xf7f1d6, emissive: 0x403000, emissiveIntensity: 0.2 })
+    );
+    sign.position.set(0, 3.55, -4.78);
+    sceneRoot.add(sign);
+
+    const signAccent = new THREE.Mesh(
+      new THREE.BoxGeometry(3.3, 0.11, 0.09),
+      new THREE.MeshBasicMaterial({ color: 0xffb200 })
+    );
+    signAccent.position.set(0, 3.05, -4.74);
+    sceneRoot.add(signAccent);
+
+    const shelves = new THREE.Group();
+    for (let i = 0; i < 2; i++) {
+      const rack = new THREE.Mesh(
+        new THREE.BoxGeometry(2.4, 0.08, 0.85),
+        new THREE.MeshStandardMaterial({ color: 0x353535, roughness: 0.8 })
+      );
+      rack.position.set(4.6, 1.3 + i * 1.2, -3.1);
+      shelves.add(rack);
+      for (let j = 0; j < 4; j++) {
+        const box = new THREE.Mesh(
+          new THREE.BoxGeometry(0.42 + Math.random() * 0.3, 0.35 + Math.random() * 0.22, 0.35 + Math.random() * 0.22),
+          new THREE.MeshStandardMaterial({
+            color: new THREE.Color().setHSL(Math.random(), 0.55, 0.7)
+          })
+        );
+        box.position.set(3.7 + j * 0.55, 1.52 + i * 1.2, -3.1);
+        box.castShadow = true;
+        shelves.add(box);
+      }
+    }
+    sceneRoot.add(shelves);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableZoom = false;
+    controls.enablePan = false;
+    controls.enableDamping = true;
+    controls.minPolarAngle = Math.PI * 0.28;
+    controls.maxPolarAngle = Math.PI * 0.47;
+    controls.minAzimuthAngle = -0.35;
+    controls.maxAzimuthAngle = 0.35;
+    controls.target.set(0, 1.4, -1.8);
+
+    const resizeRenderer = () => {
+      const w = container.clientWidth || 1;
+      const h = container.clientHeight || 1;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    };
+
+    resizeRenderer();
+    if (window.ResizeObserver) {
+      new ResizeObserver(resizeRenderer).observe(container);
+    } else {
+      window.addEventListener("resize", resizeRenderer);
+    }
+
+    let t = 0;
+    const animate = () => {
+      animationFrame = requestAnimationFrame(animate);
+      t += 0.003;
+      scene.background = new THREE.Color().setHSL(0.55 + Math.sin(t) * 0.02, 0.22, 0.9);
+      controls.update();
+      renderer.render(scene, camera);
+    };
+    animate();
+  }
+
+  document.addEventListener("DOMContentLoaded", initLoadingScreen);
+})();
+</script>
+</body>
+</html>
