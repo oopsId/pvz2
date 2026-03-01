@@ -261,6 +261,13 @@ button{cursor:pointer}
 }
 #volume-slider{width:92px}
 
+#mobile-hud-strip{display:none}
+.mobile-hud-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center}
+.mobile-hud-item{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 8px;min-width:0;border-right:1px solid rgba(255,255,255,.08)}
+.mobile-hud-item:last-child{border-right:none}
+.mobile-hud-item i{color:#d9d9d9;flex:0 0 auto}
+.mobile-hud-item span{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 #game-ui{
   flex:1 1 auto;
   min-height:0;
@@ -631,9 +638,26 @@ button{cursor:pointer}
   #document-panel{min-height:0;}
   #right-panel{min-height:0;}
   #assist-panel, #control-panel{overflow:visible;}
+  #mobile-hud-strip{display:none !important;}
+  #document-scroll{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px 10px;
+    overflow:visible;
+    padding-right:0;
+    align-content:start;
+  }
+  #document-panel .panel-scroll{overflow:visible;}
+  .customer-card-inline{grid-column:1 / -1; padding:9px 10px; margin-bottom:0;}
+  .customer-card-inline img{width:66px;height:66px;border-radius:16px;}
+  .customer-card-meta strong{font-size:.96rem;}
+  .doc-section{margin-bottom:0;}
+  .doc-label{font-size:.8rem;margin-bottom:4px;}
+  .doc-value{padding:7px 9px;font-size:.92rem;min-height:42px;}
+  #items-field,#document-field{min-height:78px;}
 }
 
-@media (max-width: 980px){
+@media (max-width: 980px), (max-aspect-ratio: 13/10){
   body{overflow:auto}
   #game-screen{min-height:auto}
   :root{--scene-h:32vh}
@@ -670,6 +694,8 @@ button{cursor:pointer}
     transform:none;
     width:100%;
   }
+  #mobile-hud-strip{display:block}
+  #timer-panel,#stats-panel{display:none !important}
   #customer-panel{
     width:100%;
     flex-direction:row;
@@ -680,12 +706,10 @@ button{cursor:pointer}
     width:72px;
     height:72px;
   }
-  #stats-panel{
-    width:100%;
-  }
   #volume-control{
     justify-content:space-between;
     border-radius:12px;
+    padding:9px 12px;
   }
   #volume-slider{flex:1}
   #game-ui{
@@ -779,6 +803,7 @@ button{cursor:pointer}
       <div id="rules">
         Вы — новый стажёр в пункте выдачи заказов Яндекс Маркета.<br>
         Нужно проверять документы, коды, товары и срок хранения заказа.<br>
+        График: 2/2, смена с 09:00 до 21:00.<br>
         Работайте быстро, но не штампуйте выдачу вслепую: служба безопасности это замечает.
       </div>
       <div class="name-row">
@@ -796,9 +821,18 @@ button{cursor:pointer}
     <div id="top-stage">
       <div id="scene-container"></div>
       <div id="overlay-layer">
+        <div id="mobile-hud-strip" class="stage-panel">
+          <div class="mobile-hud-grid">
+            <div class="mobile-hud-item"><i class="fas fa-clock"></i><span id="mobile-time-value">09:00</span></div>
+            <div class="mobile-hud-item"><i class="fas fa-calendar-day"></i><span id="mobile-day-value">1/90</span></div>
+            <div class="mobile-hud-item"><i class="fas fa-users"></i><span id="mobile-customers-value">0/30</span></div>
+            <div class="mobile-hud-item"><i class="fas fa-star"></i><span id="mobile-rating-value">50%</span></div>
+            <div class="mobile-hud-item"><i class="fas fa-wallet"></i><span id="mobile-money-value">0 ₽</span></div>
+          </div>
+        </div>
         <div id="timer-panel" class="stage-panel">
           <i class="fas fa-clock"></i>
-          <span id="timer-value">08:00</span>
+          <span id="timer-value">09:00</span>
         </div>
 
         <div id="customer-panel" class="stage-panel">
@@ -811,7 +845,7 @@ button{cursor:pointer}
 
         <div id="stats-panel" class="stage-panel">
           <div class="stat-row"><span class="stat-label">День:</span><span class="stat-value" id="day-value">1/90</span></div>
-          <div class="stat-row"><span class="stat-label">Время:</span><span class="stat-value" id="time-value">08:00</span></div>
+          <div class="stat-row"><span class="stat-label">Время:</span><span class="stat-value" id="time-value">09:00</span></div>
           <div class="stat-row"><span class="stat-label">Клиенты:</span><span class="stat-value" id="customers-value">0/30</span></div>
           <div class="stat-row"><span class="stat-label">Рейтинг:</span><span class="stat-value" id="rating-value">50%</span></div>
           <div class="stat-row"><span class="stat-label">Зарплата:</span><span class="stat-value" id="money-value">0 ₽</span></div>
@@ -983,8 +1017,8 @@ button{cursor:pointer}
   const gameState = {
     day: 1,
     maxDays: 90,
-    time: 480,
-    dayEndTime: 1080,
+    time: 540,
+    dayEndTime: 1260,
     score: 50,
     money: 0,
     dayMoney: 0,
@@ -1134,6 +1168,11 @@ button{cursor:pointer}
     $("rating-value").textContent = `${gameState.score}%`;
     $("money-value").textContent = `${gameState.money} ₽`;
     $("days-left-value").textContent = `${Math.max(0, gameState.maxDays - gameState.day)} дней`;
+    $("mobile-time-value").textContent = formatTime(gameState.time);
+    $("mobile-day-value").textContent = `${gameState.day}/${gameState.maxDays}`;
+    $("mobile-customers-value").textContent = `${gameState.customers}/${gameState.totalCustomers}`;
+    $("mobile-rating-value").textContent = `${gameState.score}%`;
+    $("mobile-money-value").textContent = `${gameState.money} ₽`;
   }
 
   function setCustomerMood(text, color = "#cacaca") {
@@ -1304,6 +1343,49 @@ button{cursor:pointer}
     });
   }
 
+  function isWorkDay(dayNumber) {
+    return ((dayNumber - 1) % 4) < 2;
+  }
+
+  function getScheduleLabel(dayNumber) {
+    return isWorkDay(dayNumber) ? "Рабочий день" : "Выходной";
+  }
+
+  function proceedToNextScheduledDay() {
+    if (gameState.day > gameState.maxDays) {
+      finishGame();
+      return;
+    }
+
+    const skippedDays = [];
+    while (gameState.day <= gameState.maxDays && !isWorkDay(gameState.day)) {
+      skippedDays.push(gameState.day);
+      gameState.day += 1;
+    }
+
+    if (skippedDays.length) {
+      updateUI();
+      const skippedText = skippedDays.length === 1
+        ? `День <strong>${skippedDays[0]}</strong> — выходной.`
+        : `Дни <strong>${skippedDays[0]}–${skippedDays[skippedDays.length - 1]}</strong> — выходные.`;
+      showModal({
+        title: "График 2/2",
+        message:
+          `${skippedText}<br>` +
+          `Следующая рабочая смена: <strong>${gameState.day <= gameState.maxDays ? gameState.day : gameState.maxDays}</strong>.<br>` +
+          `Рабочее время: <strong>09:00–21:00</strong>.`,
+        continueText: gameState.day <= gameState.maxDays ? "К следующей смене" : "Ок",
+        onContinue: () => {
+          if (gameState.day > gameState.maxDays) finishGame();
+          else startNewDay();
+        }
+      });
+      return;
+    }
+
+    startNewDay();
+  }
+
   function fillCustomerCard() {
     const c = gameState.currentCustomer;
     if (!c) return;
@@ -1333,13 +1415,13 @@ button{cursor:pointer}
     gameState.customers = 0;
     gameState.currentDayServed = 0;
     gameState.dayMoney = 0;
-    gameState.time = 480;
+    gameState.time = 540;
     gameState.pendingNext = false;
     syncNextButtonState();
     createQueueForDay();
     updateUI();
     addDialogLine(`${gameState.playerName}, день ${gameState.day} стажировки начался!`, "system");
-    addDialogLine("Новая смена открыта. Проверяйте код, документ, товары и срок хранения.", "system");
+    addDialogLine(`Новая смена открыта. ${getScheduleLabel(gameState.day)}: 09:00–21:00. Проверяйте код, документ, товары и срок хранения.`, "system");
     startNextCustomer(true);
   }
 
@@ -1562,7 +1644,7 @@ button{cursor:pointer}
       continueText: "Следующий день",
       onContinue: () => {
         gameState.day += 1;
-        startNewDay();
+        proceedToNextScheduledDay();
       }
     });
   }
@@ -1961,14 +2043,14 @@ button{cursor:pointer}
 
     const windowFrameMat = new THREE.MeshStandardMaterial({ color: 0x454545, roughness: 0.7, metalness: 0.25 });
     const glassMat = new THREE.MeshPhysicalMaterial({
-      color: 0xcde6ff,
+      color: 0xd7e7f5,
       transparent: true,
-      opacity: 0.16,
-      roughness: 0.08,
-      metalness: 0.12,
-      transmission: 0.78,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.08
+      opacity: 0.26,
+      roughness: 0.42,
+      metalness: 0.08,
+      transmission: 0.42,
+      clearcoat: 0.55,
+      clearcoatRoughness: 0.26
     });
 
     const facadeGroup = new THREE.Group();
@@ -2084,13 +2166,30 @@ button{cursor:pointer}
     const treeGroup = new THREE.Group();
     outdoorGroup.add(treeGroup);
     const treeCanopies = [];
-    for (let i = 0; i < 4; i++) {
+    const treePositions = [
+      { x: -6.0, z: -6.95 },
+      { x: -1.9, z: -6.82 },
+      { x:  2.2, z: -6.98 },
+      { x:  6.25, z: -6.78 }
+    ];
+    for (let i = 0; i < treePositions.length; i++) {
       const trunk = new THREE.Mesh(
         new THREE.CylinderGeometry(0.08, 0.11, 1.45, 8),
         new THREE.MeshStandardMaterial({ color: 0x6b4b2a, roughness: 0.92 })
       );
-      trunk.position.set(-6 + i * 4.1, 0.72, -6.9 + (Math.random() - 0.5) * 0.35);
+      trunk.position.set(treePositions[i].x, 0.72, treePositions[i].z);
+      trunk.castShadow = true;
       treeGroup.add(trunk);
+
+      if (i === treePositions.length - 1) {
+        const supportTrunk = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.07, 0.1, 1.52, 8),
+          new THREE.MeshStandardMaterial({ color: 0x6b4b2a, roughness: 0.92 })
+        );
+        supportTrunk.position.set(treePositions[i].x + 0.02, 0.76, treePositions[i].z + 0.03);
+        supportTrunk.castShadow = true;
+        treeGroup.add(supportTrunk);
+      }
 
       const canopy = new THREE.Mesh(
         new THREE.SphereGeometry(0.72 + Math.random() * 0.18, 14, 12),
@@ -2235,8 +2334,8 @@ button{cursor:pointer}
       animationFrame = requestAnimationFrame(animate);
       t += 0.016;
 
-      const minutes = clamp(gameState.time || 480, 480, 1080);
-      const dayT = (minutes - 480) / 600;
+      const minutes = clamp(gameState.time || 540, 540, 1260);
+      const dayT = (minutes - 540) / 720;
       const evening = Math.pow(dayT, 1.55);
 
       const skyColor = new THREE.Color().setHSL(0.58 - evening * 0.48, 0.34 + evening * 0.1, 0.9 - evening * 0.5);
@@ -2249,7 +2348,7 @@ button{cursor:pointer}
       sceneDynamics.sunLight.intensity = 0.62 - evening * 0.38;
       sceneDynamics.sunLight.color.copy(new THREE.Color().setHSL(0.13 - evening * 0.04, 0.42, 1 - evening * 0.12));
       sceneDynamics.warmCeilingLight.intensity = 0.48 + evening * 0.62;
-      sceneDynamics.glassMat.opacity = 0.13 + evening * 0.07;
+      sceneDynamics.glassMat.opacity = 0.24 + evening * 0.08;
 
       const floorColor = new THREE.Color().setHSL(0.0, 0.0, 0.86 - evening * 0.22);
       sceneDynamics.floor.color.copy(floorColor);
