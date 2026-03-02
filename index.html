@@ -88,7 +88,7 @@ button{cursor:pointer}
   padding:24px;
 }
 .title-card{
-  width:min(780px, 100%);
+  width:min(820px, 100%);
   background:rgba(24,24,24,.92);
   border:1px solid rgba(255,154,0,.22);
   border-radius:24px;
@@ -138,6 +138,51 @@ button{cursor:pointer}
   border-color:rgba(255,154,0,.7);
   box-shadow:0 0 0 3px rgba(255,154,0,.15);
 }
+.intro-extra-fields{
+  width:min(620px,100%);
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+  margin-top:-8px;
+}
+.option-row{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  text-align:left;
+}
+.option-row > label{
+  font-size:.92rem;
+  color:#d7d7d7;
+}
+.segmented-options{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.segmented-options input[type="radio"]{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.option-pill{
+  min-width:126px;
+  padding:11px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,154,0,.22);
+  background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+  color:#ededed;
+  text-align:center;
+  transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+  user-select:none;
+}
+.option-pill:hover{transform:translateY(-1px)}
+.segmented-options input[type="radio"]:checked + .option-pill{
+  border-color:rgba(255,193,7,.92);
+  background:linear-gradient(90deg, rgba(255,154,0,.23), rgba(255,193,7,.18));
+  box-shadow:0 0 0 3px rgba(255,154,0,.11), 0 8px 20px rgba(255,154,0,.12);
+}
+.segmented-options.workplaces .option-pill{min-width:110px}
 .title-actions{
   display:flex;
   gap:10px;
@@ -261,12 +306,18 @@ button{cursor:pointer}
 }
 #volume-slider{width:92px}
 
-#mobile-hud-strip{display:none}
-.mobile-hud-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center}
-.mobile-hud-item{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 8px;min-width:0;border-right:1px solid rgba(255,255,255,.08)}
-.mobile-hud-item:last-child{border-right:none}
-.mobile-hud-item i{color:#d9d9d9;flex:0 0 auto}
-.mobile-hud-item span{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mobile-hud-strip,
+#mobile-schedule-strip{display:none}
+.mobile-hud-grid,
+.mobile-schedule-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center}
+.mobile-hud-item,
+.mobile-schedule-item{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 8px;min-width:0;border-right:1px solid rgba(255,255,255,.08)}
+.mobile-hud-item:last-child,
+.mobile-schedule-item:last-child{border-right:none}
+.mobile-hud-item i,
+.mobile-schedule-item i{color:#d9d9d9;flex:0 0 auto}
+.mobile-hud-item span,
+.mobile-schedule-item span{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 #game-ui{
   flex:1 1 auto;
@@ -431,6 +482,9 @@ button{cursor:pointer}
 .dialog-line.success{color:var(--ok)}
 .dialog-line.alert{color:#ff867c}
 .dialog-line.neutral{color:#efefef}
+.player-name-mark{
+  font-weight:800;
+}
 
 #control-stack{
   display:flex;
@@ -638,7 +692,8 @@ button{cursor:pointer}
   #document-panel{min-height:0;}
   #right-panel{min-height:0;}
   #assist-panel, #control-panel{overflow:visible;}
-  #mobile-hud-strip{display:none !important;}
+  #mobile-hud-strip,
+  #mobile-schedule-strip{display:none !important;}
   #document-scroll{
     display:grid;
     grid-template-columns:repeat(2,minmax(0,1fr));
@@ -654,82 +709,193 @@ button{cursor:pointer}
   .doc-section{margin-bottom:0;}
   .doc-label{font-size:.8rem;margin-bottom:4px;}
   .doc-value{padding:7px 9px;font-size:.92rem;min-height:42px;}
-  #items-field,#document-field{min-height:78px;}
+  #items-field,
+  #price-field{min-height:78px;}
+  #code-field,
+  #document-field{min-height:58px;}
 }
 
 @media (max-width: 980px), (max-aspect-ratio: 13/10){
-  body{overflow:auto}
+  body{
+    overflow:auto;
+    background:
+      radial-gradient(circle at top, rgba(255,180,0,.08), transparent 24%),
+      linear-gradient(180deg, #dad7cf 0%, #cfcac0 100%);
+    color:#fff;
+  }
   #game-screen{min-height:auto}
-  :root{--scene-h:32vh}
+  :root{--scene-h:42vh}
   #top-stage{
     flex-basis:auto;
     min-height:auto;
     display:flex;
     flex-direction:column;
     border-bottom:none;
+    padding:10px 10px 0;
+    background:transparent;
   }
   #scene-container{
-    height:32vh;
-    min-height:210px;
-    border-bottom:3px solid var(--accent);
+    height:42vh;
+    min-height:280px;
+    border:1px solid rgba(255,184,0,.18);
+    border-radius:28px;
+    overflow:hidden;
+    box-shadow:0 18px 38px rgba(0,0,0,.22);
   }
   #overlay-layer{
-    position:relative;
-    inset:auto;
-    pointer-events:auto;
-    display:grid;
-    grid-template-columns:1fr;
-    gap:10px;
-    padding:10px;
-    background:
-      linear-gradient(180deg, rgba(255,154,0,.06), transparent 50px),
-      #1a1a1a;
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    display:block;
+    padding:12px;
   }
   .stage-panel,
   #volume-control{
-    position:relative;
-    top:auto;
-    left:auto;
-    right:auto;
+    position:absolute;
     transform:none;
-    width:100%;
+    width:auto;
+    border-left:none;
+    background:rgba(22,22,22,.58);
+    border:1px solid rgba(255,255,255,.09);
+    box-shadow:0 10px 26px rgba(0,0,0,.28);
+    backdrop-filter:blur(12px);
   }
-  #mobile-hud-strip{display:block}
-  #timer-panel,#stats-panel{display:none !important}
-  #customer-panel{
-    width:100%;
-    flex-direction:row;
-    justify-content:flex-start;
-    text-align:left;
+  #mobile-hud-strip,
+  #mobile-schedule-strip{display:block}
+  #mobile-hud-strip{
+    top:12px;
+    left:12px;
+    right:12px;
+    border-radius:18px;
+    overflow:hidden;
   }
-  #customer-image{
-    width:72px;
-    height:72px;
+  #mobile-hud-strip .mobile-hud-grid{
+    grid-template-columns:1.15fr .92fr .92fr .92fr 1.2fr;
   }
+  #mobile-hud-strip .mobile-hud-item{
+    padding:12px 8px;
+    font-size:1rem;
+  }
+  #mobile-schedule-strip{
+    top:72px;
+    left:12px;
+    right:12px;
+    border-radius:18px;
+    overflow:hidden;
+  }
+  #mobile-schedule-strip .mobile-schedule-grid{
+    grid-template-columns:1fr 1.45fr .95fr;
+  }
+  #mobile-schedule-strip .mobile-schedule-item{
+    padding:11px 8px;
+    font-size:1rem;
+  }
+  #timer-panel,#stats-panel,#customer-panel{display:none !important}
   #volume-control{
+    top:12px;
+    right:16px;
+    width:108px;
     justify-content:space-between;
-    border-radius:12px;
-    padding:9px 12px;
+    border-radius:999px;
+    padding:8px 10px;
+    z-index:4;
   }
-  #volume-slider{flex:1}
+  #volume-control i{font-size:.92rem}
+  #volume-slider{width:62px;flex:none}
   #game-ui{
     grid-template-columns:1fr;
-    padding:10px;
-    gap:10px;
+    padding:12px 10px 10px;
+    gap:12px;
+    background:transparent;
+  }
+  .panel{
+    background:rgba(23,23,23,.82);
+    border:1px solid rgba(255,183,0,.18);
+    box-shadow:0 14px 36px rgba(0,0,0,.22);
+    backdrop-filter:blur(9px);
   }
   #document-panel{
-    max-height:42vh;
+    max-height:none;
+    padding:14px;
+    border-radius:26px;
+    border:1px solid rgba(255,184,0,.3);
+    background:
+      radial-gradient(circle at top, rgba(255,180,0,.08), transparent 26%),
+      linear-gradient(180deg, rgba(25,25,25,.9), rgba(21,21,21,.84));
+  }
+  #doc-header{
+    margin-bottom:14px;
+    padding-bottom:10px;
+    border-bottom:1px solid rgba(255,184,0,.32);
+  }
+  #doc-title{
+    font-size:1.95rem;
+    line-height:1.05;
+  }
+  #doc-number{
+    font-size:1.04rem;
+    color:#d2d2d2;
   }
   .customer-card-inline{
-    display:none;
+    display:flex;
+    padding:12px;
+    border-radius:22px;
+    margin-bottom:12px;
+    background:rgba(255,255,255,.06);
   }
+  .customer-card-inline img{
+    width:72px;
+    height:72px;
+    border-radius:22px;
+  }
+  .customer-card-meta strong{
+    font-size:1.16rem;
+  }
+  #document-scroll{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    padding-right:0;
+  }
+  .doc-section{margin-bottom:0}
+  .doc-label{
+    margin-bottom:6px;
+    font-size:.96rem;
+    color:#b4b4b4;
+  }
+  .doc-value{
+    font-size:1.1rem;
+    padding:12px 14px;
+    border-radius:18px;
+    background:rgba(255,255,255,.06);
+  }
+  #items-field,
+  #price-field,
+  #code-field,
+  #document-field{min-height:auto}
   #dialog-log{
-    max-height:18vh;
-    min-height:120px;
+    max-height:none;
+    min-height:132px;
+    border-left:none;
+    border-radius:22px;
+    border:1px solid rgba(255,184,0,.22);
+    background:rgba(19,19,19,.82);
   }
-  #assist-panel{padding:10px}
+  .dialog-line{
+    font-size:1.08rem;
+    line-height:1.52;
+  }
+  #assist-panel{
+    padding:12px;
+    border-radius:22px;
+  }
   .switches{
     grid-template-columns:1fr;
+  }
+  .toggle-card{
+    border-radius:18px;
+    background:rgba(255,255,255,.05);
+    padding:10px 12px;
   }
   #control-stack{
     position:sticky;
@@ -737,16 +903,27 @@ button{cursor:pointer}
     z-index:25;
     padding-bottom:calc(8px + var(--safe-bottom));
     background:
-      linear-gradient(180deg, rgba(26,26,26,0), rgba(26,26,26,.82) 14px, rgba(26,26,26,.98) 42px);
+      linear-gradient(180deg, rgba(26,26,26,0), rgba(26,26,26,.12) 12px, rgba(26,26,26,.01) 24px);
   }
   #control-panel{
-    padding:10px;
-    padding-bottom:calc(10px + var(--safe-bottom));
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    padding:12px;
+    padding-bottom:calc(12px + var(--safe-bottom));
+    border-radius:24px;
+    background:rgba(23,23,23,.84);
   }
   .control-btn{
-    min-height:56px;
-    border-radius:12px;
+    min-height:62px;
+    border-radius:18px;
+    border-left:3px solid rgba(255,184,0,.9);
+    padding:12px 14px;
+    font-size:1.04rem;
+    background:
+      linear-gradient(180deg, rgba(78,78,78,.74), rgba(38,38,38,.92));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 8px 16px rgba(0,0,0,.18);
   }
+  .control-btn i{font-size:1.14rem}
   #telegram-popup{
     left:12px;
     right:12px;
@@ -758,11 +935,14 @@ button{cursor:pointer}
 @media (max-width: 620px){
   #title-logo{width:min(220px,70vw)}
   .title-card{padding:20px}
+  .intro-extra-fields{width:100%}
+  .option-pill{flex:1 1 calc(50% - 8px);min-width:0}
+  .segmented-options.workplaces .option-pill{flex:1 1 calc(33.333% - 8px)}
   #doc-header{
     flex-direction:column;
     align-items:flex-start;
   }
-  #doc-title{font-size:1.22rem}
+  #doc-title{font-size:1.42rem}
   .doc-value{font-size:1rem}
   #control-panel{
     grid-template-columns:1fr 1fr;
@@ -770,7 +950,16 @@ button{cursor:pointer}
   }
   .control-btn{
     padding:11px 12px;
-    min-height:54px;
+    min-height:58px;
+  }
+  #mobile-hud-strip .mobile-hud-grid{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+  }
+  #mobile-hud-strip .mobile-hud-item,
+  #mobile-schedule-strip .mobile-schedule-item{
+    gap:6px;
+    padding:10px 6px;
+    font-size:.95rem;
   }
 }
 
@@ -780,8 +969,12 @@ button{cursor:pointer}
     font-size:.95rem;
     gap:9px;
   }
-  #customer-panel{align-items:center}
-  #customer-name{font-size:1rem}
+  .option-pill,
+  .segmented-options.workplaces .option-pill{flex:1 1 100%}
+  #volume-control{width:94px;padding:7px 8px}
+  #volume-slider{width:54px}
+  #mobile-hud-strip .mobile-hud-item span,
+  #mobile-schedule-strip .mobile-schedule-item span{font-size:.88rem}
 }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Yandex+Sans+Text:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -811,6 +1004,40 @@ button{cursor:pointer}
         <input id="player-name-input" type="text" maxlength="24" placeholder="Например, Олег">
         <div id="name-warning"></div>
       </div>
+
+      <div class="intro-extra-fields">
+        <div class="option-row">
+          <label>Пол</label>
+          <div class="segmented-options">
+            <input type="radio" name="player-gender" id="gender-unknown" value="unknown" checked>
+            <label class="option-pill hidden" for="gender-unknown">Не указан</label>
+
+            <input type="radio" name="player-gender" id="gender-male" value="male">
+            <label class="option-pill" for="gender-male">Мужской</label>
+
+            <input type="radio" name="player-gender" id="gender-female" value="female">
+            <label class="option-pill" for="gender-female">Женский</label>
+          </div>
+        </div>
+
+        <div class="option-row">
+          <label>Бывшее место работы</label>
+          <div class="segmented-options workplaces">
+            <input type="radio" name="previous-workplace" id="workplace-none" value="" checked>
+            <label class="option-pill hidden" for="workplace-none">Не выбрано</label>
+
+            <input type="radio" name="previous-workplace" id="workplace-sber" value="СБЕР">
+            <label class="option-pill" for="workplace-sber">СБЕР</label>
+
+            <input type="radio" name="previous-workplace" id="workplace-rkn" value="РКН">
+            <label class="option-pill" for="workplace-rkn">РКН</label>
+
+            <input type="radio" name="previous-workplace" id="workplace-max" value="МАКС">
+            <label class="option-pill" for="workplace-max">МАКС</label>
+          </div>
+        </div>
+      </div>
+
       <div class="title-actions">
         <button id="start-button">Начать стажировку</button>
       </div>
@@ -830,6 +1057,15 @@ button{cursor:pointer}
             <div class="mobile-hud-item"><i class="fas fa-wallet"></i><span id="mobile-money-value">0 ₽</span></div>
           </div>
         </div>
+
+        <div id="mobile-schedule-strip" class="stage-panel">
+          <div class="mobile-schedule-grid">
+            <div class="mobile-schedule-item"><span id="mobile-schedule-status">Рабочий день</span></div>
+            <div class="mobile-schedule-item"><span id="mobile-schedule-time">Смена 09:00 — 21:00</span></div>
+            <div class="mobile-schedule-item"><span id="mobile-days-left">89 дней</span></div>
+          </div>
+        </div>
+
         <div id="timer-panel" class="stage-panel">
           <i class="fas fa-clock"></i>
           <span id="timer-value">09:00</span>
@@ -1032,6 +1268,8 @@ button{cursor:pointer}
     customerQueue: [],
     lastDialog: "",
     playerName: "",
+    playerGender: "unknown",
+    previousWorkplace: "",
     totalMistakes: 0,
     totalCustomersServed: 0,
     totalCorrectDecisions: 0,
@@ -1143,12 +1381,36 @@ button{cursor:pointer}
     return h;
   }
 
+  function getPlayerNameColor() {
+    if (gameState.playerGender === "male") return "#5aa8ff";
+    if (gameState.playerGender === "female") return "#ff72c7";
+    return "#ff9a00";
+  }
+
   function addDialogLine(text, type = "neutral") {
     if (gameState.lastDialog === text) return;
     gameState.lastDialog = text;
     const line = document.createElement("div");
     line.className = `dialog-line ${type}`;
     line.textContent = text;
+    $("dialog-log").appendChild(line);
+    $("dialog-log").scrollTop = $("dialog-log").scrollHeight;
+  }
+
+  function addPlayerDialogLine(text, type = "system") {
+    const signature = `${gameState.playerName}|${text}|${type}|player`;
+    if (gameState.lastDialog === signature) return;
+    gameState.lastDialog = signature;
+    const line = document.createElement("div");
+    line.className = `dialog-line ${type}`;
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "player-name-mark";
+    nameSpan.style.color = getPlayerNameColor();
+    nameSpan.textContent = gameState.playerName;
+
+    line.appendChild(nameSpan);
+    line.appendChild(document.createTextNode(`: ${text}`));
     $("dialog-log").appendChild(line);
     $("dialog-log").scrollTop = $("dialog-log").scrollHeight;
   }
@@ -1173,6 +1435,9 @@ button{cursor:pointer}
     $("mobile-customers-value").textContent = `${gameState.customers}/${gameState.totalCustomers}`;
     $("mobile-rating-value").textContent = `${gameState.score}%`;
     $("mobile-money-value").textContent = `${gameState.money} ₽`;
+    $("mobile-schedule-status").textContent = isWorkDay(gameState.day) ? "Рабочий день" : "Выходной";
+    $("mobile-schedule-time").textContent = "Смена 09:00 — 21:00";
+    $("mobile-days-left").textContent = `${Math.max(0, gameState.maxDays - gameState.day)} дней`;
   }
 
   function setCustomerMood(text, color = "#cacaca") {
@@ -1420,7 +1685,7 @@ button{cursor:pointer}
     syncNextButtonState();
     createQueueForDay();
     updateUI();
-    addDialogLine(`${gameState.playerName}, день ${gameState.day} стажировки начался!`, "system");
+    addDialogLine(`День ${gameState.day} стажировки начался!`, "system");
     addDialogLine(`Новая смена открыта. ${getScheduleLabel(gameState.day)}: 09:00–21:00. Проверяйте код, документ, товары и срок хранения.`, "system");
     startNextCustomer(true);
   }
@@ -1743,6 +2008,8 @@ button{cursor:pointer}
     }
     $("name-warning").textContent = "";
     gameState.playerName = value;
+    gameState.playerGender = document.querySelector('input[name="player-gender"]:checked')?.value || "unknown";
+    gameState.previousWorkplace = document.querySelector('input[name="previous-workplace"]:checked')?.value || "";
     gameState.gameStarted = true;
 
     $("title-screen").classList.add("hidden");
@@ -1756,10 +2023,12 @@ button{cursor:pointer}
     if (mainClock) clearInterval(mainClock);
     mainClock = setInterval(gameLoop, 1000);
 
-    addDialogLine(`${gameState.playerName}, добро пожаловать на стажировку.`, "system");
+    addPlayerDialogLine("Добро пожаловать на стажировку.", "system");
+    if (gameState.previousWorkplace) {
+      addDialogLine(`Кадровая карточка: бывшее место работы — ${gameState.previousWorkplace}.`, "system");
+    }
     startNewDay();
 
-    // Шаблон на будущее: телеграм-история/романтическая линия/служебные вбросы.
     window.showTelegramStoryMessage = showTelegramPopup;
   }
 
@@ -2018,6 +2287,47 @@ button{cursor:pointer}
     );
     serviceStand.position.set(-0.2, 1.18, -0.1);
     sceneRoot.add(serviceStand);
+
+    const serviceScreenGroup = new THREE.Group();
+    serviceScreenGroup.position.set(-0.2, 1.47, -0.058);
+    sceneRoot.add(serviceScreenGroup);
+
+    const serviceScreen = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.73, 0.42),
+      new THREE.MeshStandardMaterial({
+        color: 0x86ff73,
+        emissive: 0x5aff4b,
+        emissiveIntensity: 1.3,
+        roughness: 0.18,
+        metalness: 0.03
+      })
+    );
+    serviceScreenGroup.add(serviceScreen);
+
+    const serviceScreenTopBar = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.66, 0.06),
+      new THREE.MeshBasicMaterial({ color: 0x17411a, transparent: true, opacity: 0.92 })
+    );
+    serviceScreenTopBar.position.set(0, 0.15, 0.001);
+    serviceScreenGroup.add(serviceScreenTopBar);
+
+    const serviceScreenCard = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.58, 0.18),
+      new THREE.MeshBasicMaterial({ color: 0xc6ffd3, transparent: true, opacity: 0.9 })
+    );
+    serviceScreenCard.position.set(-0.05, 0.0, 0.001);
+    serviceScreenGroup.add(serviceScreenCard);
+
+    const serviceScreenSide = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.12, 0.26),
+      new THREE.MeshBasicMaterial({ color: 0x2f7d2d, transparent: true, opacity: 0.9 })
+    );
+    serviceScreenSide.position.set(0.23, -0.02, 0.001);
+    serviceScreenGroup.add(serviceScreenSide);
+
+    const serviceScreenGlow = new THREE.PointLight(0x80ff72, 0.45, 2.8);
+    serviceScreenGlow.position.set(-0.2, 1.47, 0.12);
+    sceneRoot.add(serviceScreenGlow);
 
     const shelvingGroup = new THREE.Group();
     const shelfMat = new THREE.MeshStandardMaterial({ color: 0x323232, roughness: 0.82 });
@@ -2299,7 +2609,12 @@ button{cursor:pointer}
       pedestrians,
       farLights,
       floor: floor.material,
-      road: road.material
+      road: road.material,
+      serviceScreenMaterial: serviceScreen.material,
+      serviceScreenGlow,
+      serviceScreenTopBarMaterial: serviceScreenTopBar.material,
+      serviceScreenCardMaterial: serviceScreenCard.material,
+      serviceScreenSideMaterial: serviceScreenSide.material
     };
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -2378,6 +2693,12 @@ button{cursor:pointer}
       sceneDynamics.farLights.forEach((glow, idx) => {
         glow.material.opacity = 0.1 + evening * 0.45 + Math.sin(t * 2.6 + idx) * 0.04;
       });
+
+      sceneDynamics.serviceScreenMaterial.emissiveIntensity = 1.15 + Math.sin(t * 2.2) * 0.08 + evening * 0.18;
+      sceneDynamics.serviceScreenGlow.intensity = 0.36 + Math.sin(t * 2.2) * 0.04 + evening * 0.18;
+      sceneDynamics.serviceScreenTopBarMaterial.opacity = 0.86 + Math.sin(t * 1.8) * 0.03;
+      sceneDynamics.serviceScreenCardMaterial.opacity = 0.86 + Math.sin(t * 1.4 + 0.6) * 0.025;
+      sceneDynamics.serviceScreenSideMaterial.opacity = 0.8 + Math.sin(t * 2.4 + 0.9) * 0.03;
 
       controls.update();
       renderer.render(scene, camera);
